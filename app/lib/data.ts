@@ -1,4 +1,7 @@
+// Server components allow you fetch data directly from your database.
+// SQL allows you to write targeted queries to fetch and manipulate specific data. This function allows you to query your database
 import { sql } from '@vercel/postgres';
+// You can call sql inside any Server Component. But to allow you to navigate the components more easily, we've kept all the data queries in the data.ts file, and you can import them into the components.
 import {
   CustomerField,
   CustomersTableType,
@@ -34,6 +37,7 @@ export async function fetchRevenue() {
 
 export async function fetchLatestInvoices() {
   try {
+    // // Fetch the last 5 invoices, sorted by date
     const data = await sql<LatestInvoiceRaw>`
       SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
       FROM invoices
@@ -64,11 +68,18 @@ export async function fetchCardData() {
          SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
          FROM invoices`;
 
+    // A common way to avoid waterfalls is to initiate all data requests at the same time - in parallel.
+    // In JavaScript, you can use the Promise.all() or Promise.allSettled() functions to initiate all promises at the same time.
     const data = await Promise.all([
       invoiceCountPromise,
       customerCountPromise,
       invoiceStatusPromise,
     ]);
+
+    // By using this pattern, you can:
+    // Start executing all data fetches at the same time, which can lead to performance gains.
+    // Use a native JavaScript pattern that can be applied to any library or framework.
+    // However, there is one disadvantage of relying only on this JavaScript pattern: what happens if one data request is slower than all the others?
 
     const numberOfInvoices = Number(data[0].rows[0].count ?? '0');
     const numberOfCustomers = Number(data[1].rows[0].count ?? '0');
