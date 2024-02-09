@@ -13,6 +13,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 // Once the database has been updated, the /dashboard/invoices path will be revalidated, and fresh data will be fetched from the server.At this point, you also want to redirect the user back to the /dashboard/invoices page. You can do this with the redirect function from Next.js
 
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
+
 const FormSchema = z.object({
   id: z.string(),
   customerId: z.string(),
@@ -73,4 +76,23 @@ export async function deleteInvoice(id: string) {
   await sql`DELETE FROM invoices WHERE id = ${id}`;
   revalidatePath('/dashboard/invoices');
   // Since this action is being called in the /dashboard/invoices path, you don't need to call redirect. Calling revalidatePath will trigger a new server request and re-render the table.
+}
+
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
+  }
 }
